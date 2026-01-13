@@ -31,9 +31,17 @@ export class Game {
   private canDrop: boolean = true;
   private dropX: number;
   private lastDropTime: number = 0;
+  private dropCooldownTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Canvas element
   private canvas: HTMLCanvasElement;
+
+  // Event handler references for cleanup
+  private handleMouseMove!: (e: MouseEvent) => void;
+  private handleTouchMove!: (e: TouchEvent) => void;
+  private handleCanvasClick!: () => void;
+  private handleTouchEnd!: (e: TouchEvent) => void;
+  private handleKeyDownEvent!: (e: KeyboardEvent) => void;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -114,35 +122,40 @@ export class Game {
    * Setup input handlers
    */
   private setupInputHandlers(): void {
-    // Mouse/touch move - update drop position
-    this.canvas.addEventListener('mousemove', (e) => {
+    // Store handler references for cleanup
+    this.handleMouseMove = (e: MouseEvent) => {
       if (this.state !== 'PLAYING') return;
       const rect = this.canvas.getBoundingClientRect();
       this.dropX = clampDropX(e.clientX - rect.left);
-    });
+    };
 
-    this.canvas.addEventListener('touchmove', (e) => {
+    this.handleTouchMove = (e: TouchEvent) => {
       if (this.state !== 'PLAYING') return;
       e.preventDefault();
       const rect = this.canvas.getBoundingClientRect();
       const touch = e.touches[0];
       this.dropX = clampDropX(touch.clientX - rect.left);
-    }, { passive: false });
+    };
 
-    // Click/touch - drop fruit
-    this.canvas.addEventListener('click', () => {
+    this.handleCanvasClick = () => {
       this.handleClick();
-    });
+    };
 
-    this.canvas.addEventListener('touchend', (e) => {
+    this.handleTouchEnd = (e: TouchEvent) => {
       e.preventDefault();
       this.handleClick();
-    }, { passive: false });
+    };
 
-    // Keyboard controls
-    document.addEventListener('keydown', (e) => {
+    this.handleKeyDownEvent = (e: KeyboardEvent) => {
       this.handleKeyDown(e);
-    });
+    };
+
+    // Add event listeners
+    this.canvas.addEventListener('mousemove', this.handleMouseMove);
+    this.canvas.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+    this.canvas.addEventListener('click', this.handleCanvasClick);
+    this.canvas.addEventListener('touchend', this.handleTouchEnd, { passive: false });
+    document.addEventListener('keydown', this.handleKeyDownEvent);
   }
 
   /**
@@ -231,9 +244,20 @@ export class Game {
     // Set cooldown
     this.lastDropTime = now;
     this.canDrop = false;
-    setTimeout(() => {
+    this.dropCooldownTimer = setTimeout(() => {
       this.canDrop = true;
+      this.dropCooldownTimer = null;
     }, GAME_CONFIG.dropCooldown);
+  }
+
+  /**
+   * Clear drop cooldown timer
+   */
+  private clearDropCooldownTimer(): void {
+    if (this.dropCooldownTimer !== null) {
+      clearTimeout(this.dropCooldownTimer);
+      this.dropCooldownTimer = null;
+    }
   }
 
   /**
@@ -314,6 +338,9 @@ export class Game {
    * Restart the game
    */
   restart(): void {
+    // Clear pending timers
+    this.clearDropCooldownTimer();
+
     // Reset all systems
     this.physicsEngine.reset();
     this.collisionHandler.reset();
@@ -346,6 +373,17 @@ export class Game {
    * Destroy the game and cleanup resources
    */
   destroy(): void {
+    // Clear pending timers
+    this.clearDropCooldownTimer();
+
+    // Remove event listeners
+    this.canvas.removeEventListener('mousemove', this.handleMouseMove);
+    this.canvas.removeEventListener('touchmove', this.handleTouchMove);
+    this.canvas.removeEventListener('click', this.handleCanvasClick);
+    this.canvas.removeEventListener('touchend', this.handleTouchEnd);
+    document.removeEventListener('keydown', this.handleKeyDownEvent);
+
+    // Destroy subsystems
     this.gameLoop.destroy();
     this.physicsEngine.destroy();
     this.deadlineChecker.destroy();
