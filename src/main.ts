@@ -1,15 +1,12 @@
 import './style.css';
+import { Game } from '@/game';
 
 /**
  * Watermelon Game - Main Entry Point
- *
- * This is the entry point for the watermelon game.
- * The game will be initialized here and the game loop will start.
  */
 
-console.log('Watermelon Game - Starting...');
+let game: Game | null = null;
 
-// Initialize the game
 function init() {
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 
@@ -18,11 +15,10 @@ function init() {
     return;
   }
 
-  // Set canvas dimensions
-  canvas.width = 400;
-  canvas.height = 600;
+  // Initialize the game
+  game = new Game(canvas);
 
-  console.log('Game initialized successfully');
+  console.log('Watermelon Game initialized');
 }
 
 // Start the game when DOM is ready
@@ -31,3 +27,10 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  if (game) {
+    game.destroy();
+  }
+});
