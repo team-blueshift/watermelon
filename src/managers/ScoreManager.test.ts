@@ -51,6 +51,12 @@ describe('ScoreManager', () => {
       const manager = new ScoreManager();
       expect(manager.getHighScore()).toBe(0);
     });
+
+    it('should reject negative localStorage value', () => {
+      localStorageMock.setItem('watermelon_high_score', '-100');
+      const manager = new ScoreManager();
+      expect(manager.getHighScore()).toBe(0);
+    });
   });
 
   describe('getState', () => {
