@@ -134,7 +134,7 @@ export class ScoreManager {
       const stored = localStorage.getItem(STORAGE_KEYS.HIGH_SCORE);
       if (stored) {
         const parsed = parseInt(stored, 10);
-        if (!isNaN(parsed) && parsed >= 0) {
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= Number.MAX_SAFE_INTEGER) {
           this.highScore = parsed;
         }
       }
@@ -173,7 +173,15 @@ export class ScoreManager {
    */
   private notifyListeners(): void {
     const state = this.getState();
-    this.listeners.forEach((callback) => callback(state));
+    this.listeners.forEach((callback) => {
+      try {
+        callback(state);
+      } catch (error) {
+        // Ensure one failing listener does not prevent others from being notified
+        // eslint-disable-next-line no-console
+        console.error('Error in ScoreManager listener callback:', error);
+      }
+    });
   }
 }
 
