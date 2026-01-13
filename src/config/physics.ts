@@ -94,10 +94,10 @@ export const ENGINE_OPTIONS = {
   },
 
   /**
-   * Enable sleeping for performance optimization
-   * Bodies that haven't moved for a while will "sleep" and not be simulated
+   * Disable sleeping to prevent fruits from floating in mid-air
+   * When enabled, bodies that haven't moved may stop responding to physics
    */
-  enableSleeping: true,
+  enableSleeping: false,
 
   /**
    * Position iterations
