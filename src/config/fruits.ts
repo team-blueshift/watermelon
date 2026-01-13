@@ -109,21 +109,21 @@ export const FRUIT_CONFIG: Record<FruitLevel, FruitConfig> = {
 /**
  * Score table for each fruit level
  * Index corresponds to the resulting fruit level after merge
- * Formula: n × (n + 1) / 2 (triangular number)
+ * Formula: (n-1) × n / 2 where n is the result level
  */
 export const SCORE_TABLE: number[] = [
   0, // Level 0 (not used)
-  1, // Cherry + Cherry → Strawberry (level 2) = 1 point
-  3, // Strawberry + Strawberry → Grape (level 3) = 3 points
-  6, // Grape + Grape → Dekopon (level 4) = 6 points
-  10, // Dekopon + Dekopon → Persimmon (level 5) = 10 points
-  15, // Persimmon + Persimmon → Apple (level 6) = 15 points
-  21, // Apple + Apple → Pear (level 7) = 21 points
-  28, // Pear + Pear → Peach (level 8) = 28 points
-  36, // Peach + Peach → Pineapple (level 9) = 36 points
-  45, // Pineapple + Pineapple → Melon (level 10) = 45 points
-  55, // Melon + Melon → Watermelon (level 11) = 55 points
-  66, // Watermelon + Watermelon → Vanish = 66 points
+  0, // Level 1 (Cherry - cannot be created by merge)
+  1, // Level 2: Cherry + Cherry → Strawberry = 1 point
+  3, // Level 3: Strawberry + Strawberry → Grape = 3 points
+  6, // Level 4: Grape + Grape → Dekopon = 6 points
+  10, // Level 5: Dekopon + Dekopon → Persimmon = 10 points
+  15, // Level 6: Persimmon + Persimmon → Apple = 15 points
+  21, // Level 7: Apple + Apple → Pear = 21 points
+  28, // Level 8: Pear + Pear → Peach = 28 points
+  36, // Level 9: Peach + Peach → Pineapple = 36 points
+  45, // Level 10: Pineapple + Pineapple → Melon = 45 points
+  55, // Level 11: Melon + Melon → Watermelon = 55 points
 ];
 
 /**
