@@ -66,32 +66,33 @@ export class PhysicsEngine {
 
   /**
    * Create walls (floor, left wall, right wall)
+   * Walls are positioned inside the visible canvas area
    */
   private setupWalls(): void {
     const { width, height, wallThickness } = GAME_CONFIG;
     const wallOptions = getWallBodyOptions();
 
-    // Floor
+    // Floor - at bottom inside visible area
     const floor = Bodies.rectangle(
       width / 2,
-      height + wallThickness / 2,
-      width + wallThickness * 2,
+      height - wallThickness / 2,
+      width,
       wallThickness,
       { ...wallOptions, label: 'floor' }
     );
 
-    // Left wall
+    // Left wall - at left edge inside visible area
     const leftWall = Bodies.rectangle(
-      -wallThickness / 2,
+      wallThickness / 2,
       height / 2,
       wallThickness,
       height,
       { ...wallOptions, label: 'wall_left' }
     );
 
-    // Right wall
+    // Right wall - at right edge inside visible area
     const rightWall = Bodies.rectangle(
-      width + wallThickness / 2,
+      width - wallThickness / 2,
       height / 2,
       wallThickness,
       height,

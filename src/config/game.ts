@@ -12,7 +12,7 @@ export const GAME_CONFIG: GameConfig = {
   /**
    * Game area dimensions
    */
-  width: 400, // Game area width in pixels
+  width: 450, // Game area width in pixels
   height: 600, // Game area height in pixels
 
   /**
@@ -108,27 +108,37 @@ export const SOUNDS = {
  * Used for clamping drop position
  */
 export function getMaxDroppableRadius(): number {
-  // Level 5 (Persimmon) is the largest droppable fruit at 75px
-  return 75;
+  // Level 5 (Persimmon) is the largest droppable fruit at 49px (scaled)
+  return 49;
 }
 
 /**
- * Calculate valid drop X range
+ * Calculate valid drop X range for a specific fruit radius
+ * @param fruitRadius - Radius of the current fruit
+ * @returns [minX, maxX] - Valid X coordinate range for dropping this fruit
+ */
+export function getDropXRangeForFruit(fruitRadius: number): [number, number] {
+  const minX = GAME_CONFIG.wallThickness + fruitRadius;
+  const maxX = GAME_CONFIG.width - GAME_CONFIG.wallThickness - fruitRadius;
+  return [minX, maxX];
+}
+
+/**
+ * Calculate valid drop X range (legacy, uses max droppable radius)
  * @returns [minX, maxX] - Valid X coordinate range for dropping fruits
  */
 export function getDropXRange(): [number, number] {
-  const maxRadius = getMaxDroppableRadius();
-  const minX = GAME_CONFIG.wallThickness + maxRadius;
-  const maxX = GAME_CONFIG.width - GAME_CONFIG.wallThickness - maxRadius;
-  return [minX, maxX];
+  return getDropXRangeForFruit(getMaxDroppableRadius());
 }
 
 /**
  * Clamp X coordinate to valid drop range
  * @param x - X coordinate to clamp
+ * @param fruitRadius - Optional radius of the current fruit (defaults to max droppable)
  * @returns Clamped X coordinate
  */
-export function clampDropX(x: number): number {
-  const [minX, maxX] = getDropXRange();
+export function clampDropX(x: number, fruitRadius?: number): number {
+  const radius = fruitRadius ?? getMaxDroppableRadius();
+  const [minX, maxX] = getDropXRangeForFruit(radius);
   return Math.max(minX, Math.min(maxX, x));
 }

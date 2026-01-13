@@ -194,33 +194,124 @@ export class CanvasRenderer {
   }
 
   /**
+   * Render start screen overlay
+   */
+  renderStartScreen(): void {
+    const { width, height } = GAME_CONFIG;
+
+    // Semi-transparent overlay
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    this.ctx.fillRect(0, 0, width, height);
+
+    // Title with shadow
+    this.ctx.save();
+    this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    this.ctx.shadowBlur = 10;
+    this.ctx.shadowOffsetY = 3;
+
+    this.ctx.fillStyle = '#4CAF50';
+    this.ctx.font = 'bold 48px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText('수박게임', width / 2, height / 2 - 80);
+    this.ctx.restore();
+
+    // Subtitle
+    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.font = '20px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText('Watermelon Game', width / 2, height / 2 - 30);
+
+    // Instructions box
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    this.roundRect(width / 2 - 140, height / 2 + 10, 280, 100, 10);
+    this.ctx.fill();
+
+    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.font = '16px Arial';
+    this.ctx.fillText('마우스/터치: 좌우 이동', width / 2, height / 2 + 40);
+    this.ctx.fillText('클릭/Space: 과일 떨어뜨리기', width / 2, height / 2 + 65);
+    this.ctx.fillText('같은 과일을 합쳐 수박을 만드세요!', width / 2, height / 2 + 90);
+
+    // Start button
+    this.ctx.fillStyle = '#4CAF50';
+    this.roundRect(width / 2 - 80, height / 2 + 130, 160, 50, 8);
+    this.ctx.fill();
+
+    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.font = 'bold 20px Arial';
+    this.ctx.fillText('게임 시작', width / 2, height / 2 + 155);
+  }
+
+  /**
    * Render game over overlay
    */
   renderGameOver(score: number, highScore: number): void {
     const { width, height } = GAME_CONFIG;
 
     // Semi-transparent overlay
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
     this.ctx.fillRect(0, 0, width, height);
 
-    // Game Over text
-    this.ctx.fillStyle = '#FFFFFF';
-    this.ctx.font = 'bold 36px Arial';
+    // Game Over title with effect
+    this.ctx.save();
+    this.ctx.shadowColor = 'rgba(255, 0, 0, 0.5)';
+    this.ctx.shadowBlur = 15;
+
+    this.ctx.fillStyle = '#FF5252';
+    this.ctx.font = 'bold 42px Arial';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('GAME OVER', width / 2, height / 2 - 60);
+    this.ctx.fillText('GAME OVER', width / 2, height / 2 - 100);
+    this.ctx.restore();
 
-    // Score
-    this.ctx.font = '24px Arial';
-    this.ctx.fillText(`점수: ${score}`, width / 2, height / 2);
+    // Score panel
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    this.roundRect(width / 2 - 100, height / 2 - 50, 200, 100, 10);
+    this.ctx.fill();
 
-    // High score
-    this.ctx.fillText(`최고 점수: ${highScore}`, width / 2, height / 2 + 40);
+    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.font = 'bold 28px Arial';
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText(`${score}점`, width / 2, height / 2 - 15);
 
-    // Restart hint
-    this.ctx.font = '18px Arial';
-    this.ctx.fillStyle = '#AAAAAA';
-    this.ctx.fillText('클릭하여 다시 시작', width / 2, height / 2 + 100);
+    // High score indicator
+    const isNewHighScore = score >= highScore && score > 0;
+    if (isNewHighScore) {
+      this.ctx.fillStyle = '#FFD700';
+      this.ctx.font = '18px Arial';
+      this.ctx.fillText('NEW RECORD!', width / 2, height / 2 + 25);
+    } else {
+      this.ctx.fillStyle = '#AAAAAA';
+      this.ctx.font = '16px Arial';
+      this.ctx.fillText(`최고 기록: ${highScore}점`, width / 2, height / 2 + 25);
+    }
+
+    // Restart button
+    this.ctx.fillStyle = '#4CAF50';
+    this.roundRect(width / 2 - 90, height / 2 + 70, 180, 50, 8);
+    this.ctx.fill();
+
+    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.font = 'bold 18px Arial';
+    this.ctx.fillText('다시 시작 (R)', width / 2, height / 2 + 95);
+  }
+
+  /**
+   * Helper method for rounded rectangles
+   */
+  private roundRect(x: number, y: number, w: number, h: number, r: number): void {
+    this.ctx.beginPath();
+    this.ctx.moveTo(x + r, y);
+    this.ctx.lineTo(x + w - r, y);
+    this.ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    this.ctx.lineTo(x + w, y + h - r);
+    this.ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    this.ctx.lineTo(x + r, y + h);
+    this.ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    this.ctx.lineTo(x, y + r);
+    this.ctx.quadraticCurveTo(x, y, x + r, y);
+    this.ctx.closePath();
   }
 
   /**

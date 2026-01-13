@@ -7,7 +7,7 @@ import { PhysicsEngine, CollisionHandler, GameLoop, DeadlineChecker } from '@/en
 import { CanvasRenderer, UIRenderer } from '@/renderer';
 import { ScoreManager } from '@/managers';
 import { GAME_CONFIG, clampDropX } from '@/config/game';
-import { getRandomDroppableFruit } from '@/config/fruits';
+import { getRandomDroppableFruit, getFruitConfig } from '@/config/fruits';
 import type { GameState, DroppableFruitLevel } from '@/types';
 
 /**
@@ -126,7 +126,8 @@ export class Game {
     this.handleMouseMove = (e: MouseEvent) => {
       if (this.state !== 'PLAYING') return;
       const rect = this.canvas.getBoundingClientRect();
-      this.dropX = clampDropX(e.clientX - rect.left);
+      const currentRadius = getFruitConfig(this.currentFruit).radius;
+      this.dropX = clampDropX(e.clientX - rect.left, currentRadius);
     };
 
     this.handleTouchMove = (e: TouchEvent) => {
@@ -134,7 +135,8 @@ export class Game {
       e.preventDefault();
       const rect = this.canvas.getBoundingClientRect();
       const touch = e.touches[0];
-      this.dropX = clampDropX(touch.clientX - rect.left);
+      const currentRadius = getFruitConfig(this.currentFruit).radius;
+      this.dropX = clampDropX(touch.clientX - rect.left, currentRadius);
     };
 
     this.handleCanvasClick = () => {
@@ -201,13 +203,17 @@ export class Game {
         }
         break;
       case 'ArrowLeft':
-      case 'KeyA':
-        this.dropX = clampDropX(this.dropX - 10);
+      case 'KeyA': {
+        const leftRadius = getFruitConfig(this.currentFruit).radius;
+        this.dropX = clampDropX(this.dropX - 10, leftRadius);
         break;
+      }
       case 'ArrowRight':
-      case 'KeyD':
-        this.dropX = clampDropX(this.dropX + 10);
+      case 'KeyD': {
+        const rightRadius = getFruitConfig(this.currentFruit).radius;
+        this.dropX = clampDropX(this.dropX + 10, rightRadius);
         break;
+      }
     }
   }
 
@@ -287,34 +293,14 @@ export class Game {
         this.scoreManager.getScore(),
         this.scoreManager.getHighScore()
       );
-    } else {
-      this.canvasRenderer.render(fruits, {
+    } else if (this.state === 'READY') {
+      // Render empty state with preview
+      this.canvasRenderer.render([], {
         x: this.dropX,
         level: this.currentFruit,
       });
-      this.renderStartScreen();
+      this.canvasRenderer.renderStartScreen();
     }
-  }
-
-  /**
-   * Render start screen overlay
-   */
-  private renderStartScreen(): void {
-    const ctx = this.canvasRenderer.getContext();
-    const { width, height } = GAME_CONFIG;
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 32px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('수박게임', width / 2, height / 2 - 40);
-
-    ctx.font = '18px Arial';
-    ctx.fillStyle = '#AAAAAA';
-    ctx.fillText('클릭하여 시작', width / 2, height / 2 + 20);
   }
 
   /**
