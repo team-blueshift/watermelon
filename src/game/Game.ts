@@ -5,7 +5,7 @@
 
 import { PhysicsEngine, CollisionHandler, GameLoop, DeadlineChecker } from '@/engine';
 import { CanvasRenderer, UIRenderer } from '@/renderer';
-import { ScoreManager } from '@/managers';
+import { ScoreManager, GameStatsManager } from '@/managers';
 import { GAME_CONFIG, clampDropX } from '@/config/game';
 import { getRandomDroppableFruit, getFruitConfig } from '@/config/fruits';
 import type { GameState, DroppableFruitLevel } from '@/types';
@@ -23,6 +23,7 @@ export class Game {
   private canvasRenderer: CanvasRenderer;
   private uiRenderer: UIRenderer;
   private scoreManager: ScoreManager;
+  private statsManager: GameStatsManager;
 
   // Game state
   private state: GameState = 'READY';
@@ -39,7 +40,7 @@ export class Game {
   // Event handler references for cleanup
   private handleMouseMove!: (e: MouseEvent) => void;
   private handleTouchMove!: (e: TouchEvent) => void;
-  private handleCanvasClick!: () => void;
+  private handleCanvasClick!: (e: MouseEvent) => void;
   private handleTouchEnd!: (e: TouchEvent) => void;
   private handleKeyDownEvent!: (e: KeyboardEvent) => void;
 
@@ -54,6 +55,7 @@ export class Game {
     this.canvasRenderer = new CanvasRenderer(canvas);
     this.uiRenderer = new UIRenderer();
     this.scoreManager = new ScoreManager();
+    this.statsManager = new GameStatsManager();
 
     // Initialize fruit queue
     this.currentFruit = getRandomDroppableFruit();
@@ -68,6 +70,9 @@ export class Game {
 
     // Initial UI update
     this.updateUI();
+
+    // Start game loop for rendering (always runs for all states)
+    this.gameLoop.start();
   }
 
   /**
@@ -81,8 +86,9 @@ export class Game {
       },
     });
 
-    // Merge callback - add score
+    // Merge callback - add score and record stats
     this.collisionHandler.setOnMerge((event) => {
+      this.statsManager.recordMerge(event.level);
       this.scoreManager.addMergeScore(event.level);
       this.canvasRenderer.renderMergeEffect(event.x, event.y, 30);
     });
@@ -139,13 +145,14 @@ export class Game {
       this.dropX = clampDropX(touch.clientX - rect.left, currentRadius);
     };
 
-    this.handleCanvasClick = () => {
-      this.handleClick();
+    this.handleCanvasClick = (e: MouseEvent) => {
+      this.handleClickWithPosition(e.clientX, e.clientY);
     };
 
     this.handleTouchEnd = (e: TouchEvent) => {
       e.preventDefault();
-      this.handleClick();
+      const touch = e.changedTouches[0];
+      this.handleClickWithPosition(touch.clientX, touch.clientY);
     };
 
     this.handleKeyDownEvent = (e: KeyboardEvent) => {
@@ -161,16 +168,53 @@ export class Game {
   }
 
   /**
-   * Handle click/tap
+   * Handle click/tap with position for button detection
    */
-  private handleClick(): void {
+  private handleClickWithPosition(clientX: number, clientY: number): void {
     if (this.state === 'READY') {
       this.start();
       return;
     }
 
     if (this.state === 'GAME_OVER') {
-      this.restart();
+      const rect = this.canvas.getBoundingClientRect();
+      // Scale click coordinates to canvas coordinates
+      const scaleX = this.canvas.width / rect.width;
+      const scaleY = this.canvas.height / rect.height;
+      const clickX = (clientX - rect.left) * scaleX;
+      const clickY = (clientY - rect.top) * scaleY;
+
+      // Button layout constants (must match CanvasRenderer)
+      const { width, height } = GAME_CONFIG;
+      const buttonY = height - 95;
+      const buttonSpacing = 170;
+      const buttonWidth = 145;
+      const buttonHeight = 42;
+
+      // Check "메인으로" button (left)
+      const mainButtonLeft = width / 2 - buttonSpacing / 2 - buttonWidth / 2;
+      if (
+        clickX >= mainButtonLeft &&
+        clickX <= mainButtonLeft + buttonWidth &&
+        clickY >= buttonY &&
+        clickY <= buttonY + buttonHeight
+      ) {
+        this.returnToStart();
+        return;
+      }
+
+      // Check "다시 시작" button (right)
+      const restartButtonLeft = width / 2 + buttonSpacing / 2 - buttonWidth / 2;
+      if (
+        clickX >= restartButtonLeft &&
+        clickX <= restartButtonLeft + buttonWidth &&
+        clickY >= buttonY &&
+        clickY <= buttonY + buttonHeight
+      ) {
+        this.restart();
+        return;
+      }
+
       return;
     }
 
@@ -188,9 +232,15 @@ export class Game {
       return;
     }
 
-    if (this.state === 'GAME_OVER' && e.code === 'KeyR') {
-      this.restart();
-      return;
+    if (this.state === 'GAME_OVER') {
+      if (e.code === 'KeyR') {
+        this.restart();
+        return;
+      }
+      if (e.code === 'Escape') {
+        this.returnToStart();
+        return;
+      }
     }
 
     if (this.state !== 'PLAYING') return;
@@ -222,6 +272,7 @@ export class Game {
    */
   start(): void {
     this.state = 'PLAYING';
+    this.statsManager.startTracking();
     this.gameLoop.start();
   }
 
@@ -241,6 +292,7 @@ export class Game {
       this.currentFruit
     );
     this.physicsEngine.addBody(fruit);
+    this.statsManager.recordDrop();
 
     // Update fruit queue
     this.currentFruit = this.nextFruit;
@@ -291,7 +343,8 @@ export class Game {
       this.canvasRenderer.render(fruits);
       this.canvasRenderer.renderGameOver(
         this.scoreManager.getScore(),
-        this.scoreManager.getHighScore()
+        this.scoreManager.getHighScore(),
+        this.statsManager.getStats()
       );
     } else if (this.state === 'READY') {
       // Render empty state with preview
@@ -299,7 +352,7 @@ export class Game {
         x: this.dropX,
         level: this.currentFruit,
       });
-      this.canvasRenderer.renderStartScreen();
+      this.canvasRenderer.renderStartScreen(this.scoreManager.getHighScore());
     }
   }
 
@@ -317,7 +370,8 @@ export class Game {
    */
   private gameOver(): void {
     this.state = 'GAME_OVER';
-    this.gameLoop.stop();
+    this.statsManager.finalizeStats();
+    // gameLoop continues running for rendering (animations)
   }
 
   /**
@@ -332,6 +386,8 @@ export class Game {
     this.collisionHandler.reset();
     this.deadlineChecker.reset();
     this.scoreManager.reset();
+    this.statsManager.reset();
+    this.canvasRenderer.resetNewRecordAnimation();
 
     // Reset game state
     this.currentFruit = getRandomDroppableFruit();
@@ -345,7 +401,38 @@ export class Game {
 
     // Restart game
     this.state = 'PLAYING';
+    this.statsManager.startTracking();
     this.gameLoop.start();
+  }
+
+  /**
+   * Return to start screen from game over
+   */
+  returnToStart(): void {
+    // Clear pending timers
+    this.clearDropCooldownTimer();
+
+    // Reset all systems
+    this.physicsEngine.reset();
+    this.collisionHandler.reset();
+    this.deadlineChecker.reset();
+    this.scoreManager.reset();
+    this.statsManager.reset();
+    this.canvasRenderer.resetNewRecordAnimation();
+
+    // Reset game state
+    this.currentFruit = getRandomDroppableFruit();
+    this.nextFruit = getRandomDroppableFruit();
+    this.dropX = GAME_CONFIG.width / 2;
+    this.canDrop = true;
+    this.lastDropTime = 0;
+
+    // Update UI
+    this.updateUI();
+
+    // Go to READY state (not PLAYING)
+    this.state = 'READY';
+    // gameLoop continues running for rendering
   }
 
   /**

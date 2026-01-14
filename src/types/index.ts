@@ -107,3 +107,26 @@ export interface MergeEvent {
   y: number;
   score: number;
 }
+
+/**
+ * Game statistics - tracks detailed gameplay metrics
+ */
+export interface GameStats {
+  fruitsDropped: number;
+  mergesCompleted: number;
+  playTimeMs: number;
+  highestFruitLevel: FruitLevel;
+}
+
+/**
+ * Particle for celebration effect
+ */
+export interface RecordParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  color: string;
+  size: number;
+  life: number;
+}
